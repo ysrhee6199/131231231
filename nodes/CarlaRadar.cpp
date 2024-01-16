@@ -16,46 +16,36 @@ CarlaRadarPublisher::CarlaRadarPublisher(boost::shared_ptr<carla::client::Bluepr
     const_cast<carla::client::ActorBlueprint*>(blueprint_library->Find("sensor.other.radar"))
 );
   radar_bp->SetAttribute("sensor_tick", "0.1f");
+  radar_bp->SetAttribute("horizontal_fov", "15.0f");
+  radar_bp->SetAttribute("points_per_second", "1500");
+  radar_bp->SetAttribute("vertical_fov", "15.0f");
+  radar_bp->SetAttribute("range", "70f");
   assert(radar_bp != nullptr);
 
   radar_transform = cg::Transform{
-      cg::Location{2.4f, 0.0f, 0.8f},   // x, y, z.
-      cg::Rotation{0.0f, 0.0f, 0.0f}}; // pitch, yaw, roll.
+      cg::Location{2.3f, 0.0f, 1.9f},   // x, y, z.
+      cg::Rotation{5.0f, 0.0f, 0.0f}}; // pitch, yaw, roll.
   radar_actor = world_.SpawnActor(*radar_bp, radar_transform, actor.get());
   radar = boost::static_pointer_cast<cc::Sensor>(radar_actor);
 
   radar->Listen([this](auto data) {
             auto radar_data = boost::static_pointer_cast<carla::sensor::data::RadarMeasurement>(data);
             assert(radar_data != nullptr);
-            publishRadarData(radar_data);
-    
+           publishRadarData(radar_data);
   });
 }
 
 
 
 
-void CarlaRadarPublisher::publishRadarData(const boost::shared_ptr<csd::RadarMeasurement> &radar_data)
+void CarlaRadarPublisher::publishRadarData(const boost::shared_ptr<csd::RadarMeasurement> &carla_radar_measurement)
     {
-        // Carla Radar 데이터를 ROS 2 메시지로 변환
-        sensor_msgs::msg::PointCloud2 msg;
-        // radar_data를 msg로 변환하는 코드 작성
-        msg = ConvertRadarDataToROSMessage(radar_data);
-        // 메시지 발행
-        publisher_->publish(msg);
-    }
-
-    sensor_msgs::msg::PointCloud2 CarlaRadarPublisher::ConvertRadarDataToROSMessage(const boost::shared_ptr<carla::sensor::data::RadarMeasurement> &radar_data)
-{
-  sensor_msgs::msg::PointCloud2 radar_msg;
-   
-
-    // Populate the PointCloud2 message
+    sensor_msgs::msg::PointCloud2 radar_msg;
     radar_msg.header.stamp = this->now();
     radar_msg.header.frame_id = "radar_frame";
 
     radar_msg.height = 1;
-    radar_msg.width = radar_data->GetDetectionAmount();
+    radar_msg.width = carla_radar_measurement->GetDetectionAmount();
     radar_msg.is_dense = false;
     radar_msg.is_bigendian = false;
 
@@ -67,7 +57,35 @@ void CarlaRadarPublisher::publishRadarData(const boost::shared_ptr<csd::RadarMea
     fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
     fields[0].count = 1;
 
-    // Define other fields similarly
+    fields[1].name = "y";
+    fields[1].offset = 4;
+    fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[1].count = 1;
+
+    fields[2].name = "z";
+    fields[2].offset = 8;
+    fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[2].count = 1;
+
+    fields[3].name = "Range";
+    fields[3].offset = 12;
+    fields[3].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[3].count = 1;
+
+    fields[4].name = "Velocity";
+    fields[4].offset = 16;
+    fields[4].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[4].count = 1;
+
+    fields[5].name = "AzimuthAngle";
+    fields[5].offset = 20;
+    fields[5].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[5].count = 1;
+
+    fields[6].name = "ElevationAngle";
+    fields[6].offset = 24;
+    fields[6].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    fields[6].count = 1;
 
     radar_msg.fields = fields;
 
@@ -75,26 +93,36 @@ void CarlaRadarPublisher::publishRadarData(const boost::shared_ptr<csd::RadarMea
     radar_msg.row_step = radar_msg.point_step * radar_msg.width;
 
     std::vector<uint8_t> data(radar_msg.row_step * radar_msg.height);
+  
     size_t offset = 0;
-
-    for (size_t i = 0; i < radar_data->GetDetectionAmount(); ++i)
+   
+    for (size_t i = 0; i < carla_radar_measurement->GetDetectionAmount(); ++i)
     {
-      const auto &detection = radar_data->at(i);
+      const auto &detection = carla_radar_measurement->at(i);
       float x = detection.depth * std::cos(detection.azimuth) * std::cos(-detection.altitude);
-      //float y = detection.depth * std::sin(-detection.azimuth) * std::cos(detection.altitude);
-      //float z = detection.depth * std::sin(detection.altitude);
-      //float range = detection.depth;
-      //float velocity = detection.velocity;
-      //float azimuth_angle = detection.azimuth;
-      //float elevation_angle = detection.altitude;
+      float y = detection.depth * std::sin(-detection.azimuth) * std::cos(detection.altitude);
+      float z = detection.depth * std::sin(detection.altitude);
+      float range = detection.depth;
+      float velocity = detection.velocity;
+      float azimuth_angle = detection.azimuth;
+      float elevation_angle = detection.altitude;
 
       memcpy(&data[offset + fields[0].offset], &x, sizeof(float));
-      // Copy other fields similarly
-
+      memcpy(&data[offset + fields[1].offset], &y, sizeof(float));
+      memcpy(&data[offset + fields[2].offset], &z, sizeof(float));
+      memcpy(&data[offset + fields[3].offset], &range, sizeof(float));
+      memcpy(&data[offset + fields[4].offset], &velocity, sizeof(float));
+      memcpy(&data[offset + fields[5].offset], &azimuth_angle, sizeof(float));
+      memcpy(&data[offset + fields[6].offset], &elevation_angle, sizeof(float));
+ 
       offset += radar_msg.point_step;
+      std::cerr << "Point " << i << ": ("
+              << x << ", " << y << ", " << z << ") "
+              << "Distance: " << detection.depth << std::endl;
+     
+    }
+    radar_msg.data = data;
+    publisher_->publish(radar_msg);
+ 
     }
 
-    radar_msg.data = data;
-
-    return radar_msg;
-}

@@ -69,7 +69,7 @@ int main(int argc, const char *argv[]) {
     auto vehicle = boost::static_pointer_cast<cc::Vehicle>(actor);    
 
     // Set autopilot
-    vehicle->SetAutopilot(true);    
+//    vehicle->SetAutopilot(true);    
 
     // Move spectator so we can see the vehicle from the simulator window.
     auto spectator = world.GetSpectator();
@@ -81,14 +81,80 @@ int main(int argc, const char *argv[]) {
 
     rclcpp::init(argc, argv);
     rclcpp::executors::MultiThreadedExecutor executor;
-    auto node = std::make_shared<CarlaRGBCameraPublisher>(blueprint_library,actor,world);
-    auto node_radar = std::make_shared<CarlaRadarPublisher>(blueprint_library,actor,world);
-    executor.add_node(node);
-    executor.add_node(node_radar);
+   // auto node = std::make_shared<CarlaRGBCameraPublisher>(blueprint_library,actor,world);
+    //auto node_radar = std::make_shared<CarlaRadarPublisher>(blueprint_library,actor,world);
+   // executor.add_node(node);
+   // executor.add_node(node_radar);
+
+
+
+
+
+/***********************FV1*********************/
+
+    //Get a Trailer
+    auto trailer_fv1 = blueprint_library->Filter("trailer");
+    auto blueprint_trailer_fv1 = RandomChoice(*trailer, rng);
+    // Get a Truck blueprint.
+    auto vehicles_fv1 = blueprint_library->Filter("dafxf");
+    auto blueprint_fv1 = RandomChoice(*vehicles_fv1, rng);  
+    
+    transform.location.x = 11.90f;
+    transform.location.y = 10.32f;
+    transform.location.z = 1.0f;
+    transform.rotation.roll = 0.0f;
+    transform.rotation.pitch = 0.0f;
+    transform.rotation.yaw= -90.22f;
+
+    // Spawn the trailer
+    auto actor_trailer_fv1 = world.SpawnActor(blueprint_trailer_fv1, transform);
+    std::cout << "Spawned " << actor_trailer_fv1->GetDisplayId() << '\n';
+    auto trailer_fv1_ = boost::static_pointer_cast<cc::Vehicle>(actor_trailer_fv1);    
+
+    // Find a valid spawn point for truck
+    transform.location += 5.2f * transform.GetForwardVector();    
+
+    // Spawn the truck
+    auto actor_fv1 = world.SpawnActor(blueprint_fv1, transform);
+    std::cout << "Spawned " << actor_fv1->GetDisplayId() << '\n';
+    auto vehicle_fv1 = boost::static_pointer_cast<cc::Vehicle>(actor_fv1);    
+
+    // Set autopilot
+  //  vehicle_fv1->SetAutopilot(true);  
+
+ //   vehicle->SetAutopilot(true);
+    auto node_fv1 = std::make_shared<CarlaRGBCameraPublisher>(blueprint_library,actor_fv1,world);
+    auto node_radar_fv1 = std::make_shared<CarlaRadarPublisher>(blueprint_library,actor_fv1,world);
+    executor.add_node(node_fv1);
+    executor.add_node(node_radar_fv1);
+       
+/***********************FV1*********************/
+
+
+
+
+
+
+
+
+
+
     executor.spin();
 
 
-    //rclcpp::spin(std::make_shared<CarlaRGBCameraPublisher>(blueprint_library,actor,world));
+
+
+     
+
+
+
+
+
+
+
+
+
+    
 
     rclcpp::shutdown(); 
 
@@ -99,9 +165,10 @@ int main(int argc, const char *argv[]) {
 
     // Remove actors from the simulation.
       
-    vehicle->Destroy();
+  vehicle->Destroy();
     trailer_->Destroy();
-
+    vehicle_fv1->Destroy();
+    trailer_fv1_->Destroy();
 
 
     std::cout << "Actors destroyed." << std::endl;  

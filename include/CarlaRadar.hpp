@@ -41,7 +41,6 @@ private:
   boost::shared_ptr<carla::client::Actor> actor = nullptr; 
   carla::client::World& world_;
   void publishRadarData(const boost::shared_ptr<csd::RadarMeasurement> &radar_data);
-  sensor_msgs::msg::PointCloud2 ConvertRadarDataToROSMessage(const boost::shared_ptr<csd::RadarMeasurement> &radar_data);
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_;
 
     boost::shared_ptr<carla::client::Sensor> radar;
