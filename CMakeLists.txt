@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ros2_bridge)
+project(carla_truck_bridge)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -33,33 +33,58 @@ set(ament_dependencies
 
 include(dependency.cmake)
 
-add_executable(${PROJECT_NAME}
-    src/main.cpp
+add_executable(LV_bridge
+    src/LV.cpp
+    nodes/CarlaRGBCamera.cpp
+    nodes/CarlaRadar.cpp
+)
+add_executable(FV1_bridge
+    src/FV1.cpp
     nodes/CarlaRGBCamera.cpp
     nodes/CarlaRadar.cpp
 )
 
 
-ament_target_dependencies(${PROJECT_NAME} ${ament_dependencies} )
+ament_target_dependencies(LV_bridge ${ament_dependencies} )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(LV_bridge PUBLIC
     ${libCarla_INCLUDE_DIR}
     ${DEP_INCLUDE_DIR}
 )
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(LV_bridge PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-target_link_directories(${PROJECT_NAME} PUBLIC
+target_link_directories(LV_bridge PUBLIC
     ${libCarla_LIB_DIR}
 )
 
-target_link_libraries(${PROJECT_NAME} ${libCarla_LIBS} ${Boost_LIBRARIES} ${TIFF_LIBRARIES} jpeg png
+target_link_libraries(LV_bridge ${libCarla_LIBS} ${Boost_LIBRARIES} ${TIFF_LIBRARIES} jpeg png
 )
 
 
+ament_target_dependencies(FV1_bridge ${ament_dependencies} )
+
+target_include_directories(FV1_bridge PUBLIC
+    ${libCarla_INCLUDE_DIR}
+    ${DEP_INCLUDE_DIR}
+)
+target_include_directories(FV1_bridge PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+target_link_directories(FV1_bridge PUBLIC
+    ${libCarla_LIB_DIR}
+)
+
+target_link_libraries(FV1_bridge ${libCarla_LIBS} ${Boost_LIBRARIES} ${TIFF_LIBRARIES} jpeg png
+)
 
 install(TARGETS
-${PROJECT_NAME} 
+LV_bridge 
+FV1_bridge
 DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY
+	launch
+	DESTINATION share/${PROJECT_NAME}
+)
 
 install(
   DIRECTORY libcarla-install/lib/

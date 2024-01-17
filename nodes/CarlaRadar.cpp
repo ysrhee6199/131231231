@@ -3,35 +3,52 @@
 #include <boost/make_shared.hpp>
 
 CarlaRadarPublisher::CarlaRadarPublisher(boost::shared_ptr<carla::client::BlueprintLibrary> blueprint_library, boost::shared_ptr<carla::client::Actor> actor,carla::client::World& world_)
-    : Node("carla_radar_publisher"),world_(world_) {
+    : Node("carla_radar_publisher", rclcpp::NodeOptions()
+               .allow_undeclared_parameters(true)
+           .automatically_declare_parameters_from_overrides(true)),world_(world_) {
 
-       rclcpp::QoS custom_qos(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
+    rclcpp::QoS custom_qos(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
     custom_qos.best_effort();
 
-  this->blueprint_library = blueprint_library;
-  this->actor = actor;
-  publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/carla/radar", custom_qos);
+    this->blueprint_library = blueprint_library;
+    this->actor = actor;
 
-  radar_bp = boost::shared_ptr<carla::client::ActorBlueprint>(
-    const_cast<carla::client::ActorBlueprint*>(blueprint_library->Find("sensor.other.radar"))
+
+    radar_bp = boost::shared_ptr<carla::client::ActorBlueprint>(
+        const_cast<carla::client::ActorBlueprint*>(blueprint_library->Find("sensor.other.radar"))
 );
-  radar_bp->SetAttribute("sensor_tick", "0.1f");
-  radar_bp->SetAttribute("horizontal_fov", "15.0f");
-  radar_bp->SetAttribute("points_per_second", "1500");
-  radar_bp->SetAttribute("vertical_fov", "15.0f");
-  radar_bp->SetAttribute("range", "70f");
-  assert(radar_bp != nullptr);
 
-  radar_transform = cg::Transform{
-      cg::Location{2.3f, 0.0f, 1.9f},   // x, y, z.
-      cg::Rotation{5.0f, 0.0f, 0.0f}}; // pitch, yaw, roll.
-  radar_actor = world_.SpawnActor(*radar_bp, radar_transform, actor.get());
-  radar = boost::static_pointer_cast<cc::Sensor>(radar_actor);
 
-  radar->Listen([this](auto data) {
-            auto radar_data = boost::static_pointer_cast<carla::sensor::data::RadarMeasurement>(data);
-            assert(radar_data != nullptr);
-           publishRadarData(radar_data);
+    this->get_parameter_or("radar/x",radar_x,2.0f);
+    this->get_parameter_or("radar/y",radar_y,0.0f);
+    this->get_parameter_or("radar/z",radar_z,3.5f);
+    this->get_parameter_or("radar/pitch",radar_pitch, -15.0f);
+    this->get_parameter_or("radar/yaw",radar_yaw,0.0f);
+    this->get_parameter_or("radar/roll",radar_roll,0.0f);
+    this->get_parameter_or("radar/sensor_tick",radar_sensor_tick,std::string("0.1f"));
+    this->get_parameter_or("radar/horizontal_fov",radar_horizontal_fov,std::string("30.0f"));
+    this->get_parameter_or("radar/vertical_fov",radar_vertical_fov,std::string("30.0f"));
+    this->get_parameter_or("radar/points_per_second",radar_points_per_second,std::string("1500"));
+    this->get_parameter_or("radar/range",radar_range,std::string("100.0f"));
+    this->get_parameter_or("radar_topic_name",radar_topic_name,std::string("LV/carla/radar"));
+
+    radar_bp->SetAttribute("sensor_tick", radar_sensor_tick);
+    radar_bp->SetAttribute("horizontal_fov", radar_horizontal_fov);
+    radar_bp->SetAttribute("points_per_second", radar_points_per_second);
+    radar_bp->SetAttribute("vertical_fov", radar_vertical_fov);
+    radar_bp->SetAttribute("range", radar_range);
+    assert(radar_bp != nullptr);
+     publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(radar_topic_name, custom_qos);
+    radar_transform = cg::Transform{
+        cg::Location{radar_x, radar_y, radar_z},   // x, y, z.
+        cg::Rotation{radar_pitch, radar_yaw, radar_roll}}; // pitch, yaw, roll.
+    radar_actor = world_.SpawnActor(*radar_bp, radar_transform, actor.get());
+    radar = boost::static_pointer_cast<cc::Sensor>(radar_actor);
+
+    radar->Listen([this](auto data) {
+        auto radar_data = boost::static_pointer_cast<carla::sensor::data::RadarMeasurement>(data);
+        assert(radar_data != nullptr);
+        publishRadarData(radar_data);
   });
 }
 
@@ -116,9 +133,9 @@ void CarlaRadarPublisher::publishRadarData(const boost::shared_ptr<csd::RadarMea
       memcpy(&data[offset + fields[6].offset], &elevation_angle, sizeof(float));
  
       offset += radar_msg.point_step;
-      std::cerr << "Point " << i << ": ("
-              << x << ", " << y << ", " << z << ") "
-              << "Distance: " << detection.depth << std::endl;
+    //  std::cerr << "Point " << i << ": ("
+       //       << x << ", " << y << ", " << z << ") "
+        //      << "Distance: " << detection.depth << std::endl;
      
     }
     radar_msg.data = data;
