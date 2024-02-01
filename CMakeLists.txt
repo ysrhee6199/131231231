@@ -37,11 +37,15 @@ add_executable(LV_bridge
     src/LV.cpp
     nodes/CarlaRGBCamera.cpp
     nodes/CarlaRadar.cpp
+    nodes/CarlaLidar.cpp
+    nodes/CarlaVehicle.cpp
 )
 add_executable(FV1_bridge
     src/FV1.cpp
     nodes/CarlaRGBCamera.cpp
     nodes/CarlaRadar.cpp
+    nodes/CarlaLidar.cpp
+    nodes/CarlaVehicle.cpp
 )
 
 
