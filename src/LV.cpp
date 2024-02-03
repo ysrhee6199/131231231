@@ -46,7 +46,7 @@ int main(int argc, const char *argv[]) {
     auto map = world.GetMap();
     auto transform = RandomChoice(map->GetRecommendedSpawnPoints(), rng);
     
-    transform.location.x = -308.990f; // 300 , 303(11m)
+    transform.location.x = -270.990f; // 300 , 303(11m)
     transform.location.y = 30.0f;
     transform.location.z = 2.0f;
     transform.rotation.roll = 0.0f;
@@ -82,13 +82,13 @@ int main(int argc, const char *argv[]) {
     //auto node_radar = std::make_shared<CarlaRadarPublisher>(blueprint_library,actor,world);
     auto node_lidar = std::make_shared<CarlaLidarPublisher>(blueprint_library,actor,world);
     auto node_vehicle = std::make_shared<CarlaVehicleController>(vehicle);
-    executor.add_node(node);
+    //executor.add_node(node);
     executor.add_node(node_lidar);
     executor.add_node(node_vehicle);
      // Set autopilot
-    //std::this_thread::sleep_for(20s);
-   // vehicle->SetAutopilot(true);   
-    //carla::geom::Vector3D target_velocity(19.4444,0 , 0); 
+   // std::this_thread::sleep_for(10s);
+    //vehicle->SetAutopilot(true);   
+   // carla::geom::Vector3D target_velocity(19.4444,0 , 0); 
     //vehicle->EnableConstantVelocity(target_velocity);
     executor.spin();
 

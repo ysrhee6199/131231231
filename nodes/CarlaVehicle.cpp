@@ -43,9 +43,10 @@ void CarlaVehicleController::VelocityPublisher_callback() {
 
 void CarlaVehicleController::VelocitySubCallback(const std_msgs::msg::Float32::SharedPtr msg) {
     float control_value = msg->data;
-    if(this->control.hand_brake == true) {
-        this->control.hand_brake = false;
+    if(this->control.hand_brake == true ) {
+        if (control_value > 0.5) this->control.hand_brake = false;
     }
+    else {
     if (control_value >= 0) 
     {
         this->control.throttle = control_value;
@@ -57,4 +58,5 @@ void CarlaVehicleController::VelocitySubCallback(const std_msgs::msg::Float32::S
     this->control.brake = -control_value;
     }
     Vehicle_->ApplyControl(control);
+    }
 }

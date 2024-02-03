@@ -53,7 +53,23 @@ def generate_launch_description():
             {"lidar_topic_name": "carla/lidar"}
         ]
     )
+
+    FV2 = Node(
+        namespace='FV2',
+        package = 'carla_truck_bridge',
+        executable = 'FV2_bridge',
+        name = 'FV2_bridge',
+        output = 'screen',
+        parameters = [
+            carla_truck_bridge_params_file,
+            {"rgbcam_topic_name": "carla/image_raw"},
+            {"radar_topic_name": "carla/radar"},
+            {"lidar_topic_name": "carla/lidar"}
+        ]
+    )
     
     return LaunchDescription([
-        LV
+        LV,
+        FV1,
+        FV2
     ])
